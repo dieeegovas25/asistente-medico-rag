@@ -142,6 +142,7 @@ La aplicación está lista para ejecutarse directamente en la nube de Streamlit:
 
 *   **Enlace Público de la Aplicación Desplegada:** [https://asistente-medico-rag.streamlit.app](https://asistente-medico-rag.streamlit.app)
 *   **Repositorio Público:** [https://github.com/dieeegovas25/asistente-medico-rag](https://github.com/dieeegovas25/asistente-medico-rag)
+<img width="959" height="438" alt="image" src="https://github.com/user-attachments/assets/f14ef51c-f784-40ae-a9ef-20def0db6491" />
 
 ---
 
