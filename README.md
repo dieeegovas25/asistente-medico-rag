@@ -9,9 +9,8 @@ Este proyecto es la solución completa y profesional para el desafío del progra
 * **Carga de Documentos en Tiempo de Ejecución**: Permite subir múltiples archivos de forma simultánea. Soporta formatos estándar: **PDF**, **DOCX**, **TXT**, y formatos estructurados: **CSV**, **XLSX** (Excel).
 * **Ingesta Inteligente de Datos Tabulares (Valor Agregado)**: Los archivos CSV y XLSX se procesan fila por fila, transformando cada registro en textos descriptivos para conservar el contexto relacional en las búsquedas vectoriales.
 * **Caché Local de Embeddings (Valor Agregado)**: Implementa `CacheBackedEmbeddings` y `LocalFileStore` en disco para evitar re-calcular embeddings para textos procesados previamente, optimizando el consumo de tokens y acelerando el tiempo de procesamiento.
-* **Generación Dinámica de Preguntas Sugeridas**: Cuando se indexan documentos, el modelo LLM analiza de forma inteligente y dinámica una muestra del contenido del vectorstore y genera entre 5 y 10 preguntas sugeridas en la interfaz de usuario. Al hacer clic en ellas, se consultan inmediatamente.
-* **Citas Detalladas y Auditoría (Valor Agregado)**: Cada respuesta incluye un bloque expandible que muestra las fuentes exactas consultadas (nombre de archivo, página, hoja de cálculo, fila y fragmento de texto original).
-* **Estricta Restricción de Conocimiento**: El agente responde únicamente en base a los documentos cargados. Si no encuentra la respuesta, contesta exactamente: *"No encontré esa información dentro de la documentación disponible."*
+* **Resiliencia de Cuota y Control de Flujo (Valor Agregado)**: Implementa llamadas por lotes optimizados de 100 fragmentos con tiempos de espera preventivos y reintentos con backoff exponencial. Esto permite indexar documentos de gran tamaño sin saturar los límites de cuota (429 Rate Limits) de las cuentas gratuitas de Gemini.
+* **Estricta Restricción de Conocimiento**: El agente responde únicamente en base a los documentos cargados. Si no encuentra la respuesta, contesta exactamente la frase de control obligatoria: *"No encontré esa información dentro de la documentación disponible."*
 * **Estética Premium**: Diseño visual moderno, responsivo y adaptado para entornos profesionales del sector de salud, con tipografías personalizadas (`Outfit`), tarjetas informativas, transiciones fluidas y una experiencia limpia.
 
 ---
@@ -33,16 +32,16 @@ Búsqueda Semántica ──► FAISS Vector DB (Almacenamiento Local)
 Contexto relevante + Pregunta
     │
     ▼
-LLM Google Gemini (gemini-1.5-flash, Temp=0.0)
+LLM Google Gemini (gemini-flash-latest, Temp=0.0)
     │
     ▼
-Respuesta + Citas del origen del documento
+Respuesta Directa (Estricto apego al contexto)
 ```
 
 ### Tecnologías Principales:
 * **Streamlit**: Framework para el desarrollo de la interfaz de usuario web interactiva.
 * **LangChain & LangChain Community**: Framework de orquestación para pipelines de IA Generativa.
-* **Google Gemini (API)**: Modelos de lenguaje (`gemini-1.5-flash`) y de embeddings (`text-embedding-004`).
+* **Google Gemini (API)**: Modelos de lenguaje (`gemini-flash-latest`) y de embeddings (`models/gemini-embedding-001`).
 * **FAISS (CPU)**: Base de datos vectorial eficiente de Facebook para búsquedas de similitud densa.
 * **Pandas & OpenPyXL**: Procesamiento avanzado de archivos tabulares (CSV y Excel).
 * **PyPDF & Python-Docx**: Extracción limpia de texto en documentos PDF y Word.
@@ -64,10 +63,10 @@ alura_proyecto_consultorio/
 │   ├── __init__.py
 │   ├── config.py           # Configuración del proyecto, variables de entorno y constantes
 │   ├── ingestion.py        # Lectores de PDF, DOCX, TXT, CSV, XLSX y splitter de texto
-│   ├── embeddings.py       # Inicializador de embeddings con caché local en disco
+│   ├── embeddings.py       # Inicializador de embeddings con caché local y reintentos resilientes
 │   ├── vector_db.py        # Control del índice FAISS (crear, guardar, cargar, actualizar)
 │   ├── retriever.py        # Lógica de recuperación y búsquedas de similitud
-│   ├── prompt.py           # Prompts del sistema para QA y preguntas sugeridas
+│   ├── prompt.py           # Prompt del sistema para QA restringido
 │   ├── agent.py            # Agente RAG principal (cadenas LCEL de LangChain)
 │   ├── chat.py             # Gestión del historial y st.session_state
 │   └── utils.py            # Utilidades generales (limpieza de archivos, tamaños, formatos)
@@ -76,7 +75,7 @@ alura_proyecto_consultorio/
 │   ├── uploads/            # Directorio temporal para los archivos del usuario (Git ignored)
 │   └── vectorstore/        # Almacenamiento local del índice FAISS y caché (Git ignored)
 │
-└── assets/                 # Recursos gráficos estáticos (opcional)
+└── assets/                 # Recursos gráficos estáticos o capturas (opcional)
 ```
 
 ---
@@ -87,8 +86,8 @@ Sigue los siguientes pasos para ejecutar el proyecto en tu máquina local:
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/consultorio-ai.git
-cd consultorio-ai
+git clone https://github.com/dieeegovas25/asistente-medico-rag.git
+cd asistente-medico-rag
 ```
 
 ### 2. Crear y activar el entorno virtual
@@ -129,33 +128,38 @@ La aplicación se abrirá automáticamente en tu navegador web en la dirección 
 
 ## ☁️ Despliegue en Streamlit Community Cloud
 
-Para desplegar la aplicación de forma gratuita en la nube de Streamlit, sigue estos pasos:
+La aplicación está lista para ejecutarse directamente en la nube de Streamlit:
 
-### 1. Subir el proyecto a GitHub
-Crea un nuevo repositorio en GitHub (asegúrate de que el archivo `.env` **no** esté incluido; para eso sirve el `.gitignore`) y sube tu código:
-```bash
-git init
-git add .
-git commit -m "Initial commit: RAG Agent Jesús tu Sanador"
-git branch -M main
-git remote add origin https://github.com/tu-usuario/consultorio-ai.git
-git push -u origin main
-```
-
-### 2. Crear la aplicación en Streamlit Cloud
-1. Inicia sesión en [Streamlit Share](https://share.streamlit.io/) con tu cuenta de GitHub.
-2. Haz clic en el botón **"Create app"** (o **"New app"**).
-3. Selecciona tu repositorio (`tu-usuario/consultorio-ai`), la rama (`main`) y el archivo de entrada (`app.py`).
-
-### 3. Configurar los Secrets
-Antes de hacer clic en Deploy, debes configurar tu API Key en la plataforma para que el código la pueda leer de forma segura:
-1. En la pantalla de creación, haz clic en **"Advanced settings..."**.
-2. En la sección **"Secrets"**, introduce tu API Key en formato TOML:
+1. Inicia sesión en [Streamlit Share](https://share.streamlit.io/) vinculando tu cuenta de GitHub.
+2. Haz clic en **"Create app"** (o **"New app"**).
+3. Selecciona tu repositorio (`dieeegovas25/asistente-medico-rag`), la rama (`main`) y el archivo de entrada (`app.py`).
+4. Haz clic en **"Advanced settings..."**.
+5. En la sección **"Secrets"**, introduce tu API Key de Gemini:
    ```toml
    GOOGLE_API_KEY = "tu_clave_real_de_gemini_aqui"
    ```
-3. Haz clic en **"Save"**.
-4. Finalmente, haz clic en **"Deploy!"**. Streamlit instalará las dependencias de `requirements.txt` automáticamente y tu aplicación estará en línea en pocos minutos.
+6. Haz clic en **"Save"** y luego en **"Deploy!"**.
+
+*   **Enlace Público de la Aplicación Desplegada:** [https://asistente-medico-rag.streamlit.app](https://asistente-medico-rag.streamlit.app)
+*   **Repositorio Público:** [https://github.com/dieeegovas25/asistente-medico-rag](https://github.com/dieeegovas25/asistente-medico-rag)
+
+---
+
+## 💬 Ejemplos de Preguntas y Respuestas
+
+Para demostrar el comportamiento restringido y preciso del agente, a continuación se presentan ejemplos reales de interacción con documentos del consultorio:
+
+### Ejemplo 1: Consulta sobre Horarios de Atención
+*   **Pregunta del usuario:** `¿Cuáles son los horarios de atención de medicina general los sábados?`
+*   **Respuesta del agente:** `El área de medicina general atiende los sábados en el horario de 8:00 AM a 1:00 PM. De lunes a viernes el horario es corrido de 7:00 AM a 7:00 PM.`
+
+### Ejemplo 2: Consulta sobre Tarifas de Servicios
+*   **Pregunta del usuario:** `¿Cuál es el costo del servicio de odontología para una profilaxis dental?`
+*   **Respuesta del agente:** `De acuerdo con la tabla de tarifas vigentes, la profilaxis dental (limpieza) tiene un costo de $30.00 USD en la especialidad de odontología.`
+
+### Ejemplo 3: Pregunta Fuera de la Documentación (Garantía de Restricción)
+*   **Pregunta del usuario:** `¿Cuál es la capital de Italia y cómo está el clima hoy?`
+*   **Respuesta del agente:** `No encontré esa información dentro de la documentación disponible.`
 
 ---
 
@@ -163,7 +167,6 @@ Antes de hacer clic en Deploy, debes configurar tu API Key en la plataforma para
 
 1. **Subida**: El usuario carga archivos de reglamento o tarifas a través del File Uploader de Streamlit.
 2. **Ingesta y Segmentación**: El sistema lee los archivos físicamente, extrae el texto según el formato, limpia dobles espacios y los divide en fragmentos (chunks) de 1000 caracteres con un traslape de 200 caracteres para asegurar la continuidad de la información.
-3. **Indexación**: Cada fragmento se convierte en un vector de alta densidad usando `text-embedding-004` (Gemini). Los vectores se guardan localmente mediante un índice `FAISS` en disco.
+3. **Indexación**: Cada fragmento se convierte en un vector de alta densidad usando `models/gemini-embedding-001` (Gemini). Los vectores se guardan localmente mediante un índice `FAISS` en disco.
 4. **Búsqueda Vectorial**: Cuando el usuario hace una pregunta, se genera su embedding y se buscan los 5 fragmentos más similares en la base de datos vectorial local.
-5. **Generación**: El sistema une los fragmentos seleccionados junto al prompt del sistema y la pregunta del usuario. Se envía este contexto a `gemini-1.5-flash`, el cual genera la respuesta final o devuelve la frase de restricción predefinida si no está en la documentación.
-6. **Despliegue**: Las citas se listan al final de la respuesta mostrando el origen exacto del archivo utilizado para responder.
+5. **Generación**: El sistema une los fragmentos seleccionados junto al prompt del sistema y la pregunta del usuario. Se envía este contexto a `gemini-flash-latest`, el cual genera la respuesta final o devuelve la frase de restricción predefinida si no está en la documentación.
